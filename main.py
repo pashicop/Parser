@@ -47,11 +47,11 @@ def parse(text: str, lang:'en'):
                 formatted_string = format_string(t_str, pattern)
                 translation_dict = eval(formatted_string)
                 if translation_dict['nameCannotNull'] == 'Please enter the complete name':
-                    # dict_en = deepcopy(translation_dict)
-                    dict_en = {"a": 12, "b": "bbb", "c": "ccc", "d": "ddd",}
+                    dict_en = deepcopy(translation_dict)
+                    # dict_en = {"a": 12, "b": "bbb", "c": "ccc", "d": "ddd",}
                 elif has_cyrillic(translation_dict['nameCannotNull']):
-                    # dict_ru = deepcopy(translation_dict)
-                    dict_ru = {"a": 13, "b": "ЫВАВАЫВВ", "d": "ываыва", "e": "ЫВАВЫАААА"}
+                    dict_ru = deepcopy(translation_dict)
+                    # dict_ru = {"a": 13, "b": "ЫВАВАЫВВ", "d": "ываыва", "e": "ЫВАВЫАААА"}
             if dict_ru:
                 if dict_en:
                     dd = defaultdict(list)
