@@ -1,5 +1,6 @@
+from copy import deepcopy
 from pprint import pprint
-
+from collections import defaultdict
 import pandas as pd
 import openpyxl
 import re
@@ -17,6 +18,20 @@ def format_string(string, p):
     return f_string
 
 
+def has_cyrillic(text):
+    return bool(re.search('[а-яА-Я]', text))
+
+
+def has_latin(text):
+    result = False
+    for char in text:
+        if char.lower() in ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',' ','!','?']:
+            result = True
+        else:
+            return False
+    return result
+
+
 def parse(text: str, lang:'en'):
     # translation_string = text[text.find('={map:{'):text.rfind('}')]
     if lang == 'en':
@@ -28,17 +43,36 @@ def parse(text: str, lang:'en'):
             print(f'Не найдено')
         else:
             print(f'Найдено({len(translation_string)}): {translation_string}')
-            for i, t_str in enumerate(translation_string):
-                # sheet_name = "Лист" + str(i + 1)
-                sheet_name = "Лист1"
+            for t_str in translation_string:
                 formatted_string = format_string(t_str, pattern)
                 translation_dict = eval(formatted_string)
-                data = pd.DataFrame.from_dict(translation_dict, orient='index')
-                if i == 0:
-                    data.to_excel("Шторм.xlsx", sheet_name=sheet_name)
-                else:
-                    with pd.ExcelWriter('Шторм.xlsx', mode='a', if_sheet_exists='overlay') as writer:
-                        data.to_excel(writer, sheet_name=sheet_name, startcol=(i + 1), index=False)
+                if translation_dict['nameCannotNull'] == 'Please enter the complete name':
+                    dict_en = deepcopy(translation_dict)
+                elif has_cyrillic(translation_dict['nameCannotNull']):
+                    dict_ru = deepcopy(translation_dict)
+            if dict_ru:
+                if dict_en:
+                    dd = defaultdict(list)
+                    list_dict_en_keys = list(dict_en.keys())
+                    list_dict_ru_keys = list(dict_ru.keys())
+                    for key in list(dict_en.keys()):
+                        dd[key].append(dict_en[key])
+                        if key in list_dict_ru_keys:
+                            dd[key].append(dict_ru[key])
+                    # for key in set(list(dict_ru.keys()) + list(dict_en.keys())):
+                    #     if key in dict_en:
+                    #         dd[key].append(dict_en[key])
+                    #     if key in dict_ru:
+                    #         dd[key].append(dict_ru[key])
+                    print(dd)
+                    # data_en = pd.DataFrame.from_dict(dict_en, orient='index')
+                    # data_ru = pd.DataFrame.from_dict(dict_ru, orient='index')
+                sheet_name = "Лист1"
+                data = pd.DataFrame.from_dict(dict(dd), orient='index', columns=['EN', 'RU'])
+                data.to_excel("Шторм.xlsx", sheet_name=sheet_name)
+                # else:
+                #     with pd.ExcelWriter('Шторм.xlsx', mode='a', if_sheet_exists='overlay') as writer:
+                #         data.to_excel(writer, sheet_name=sheet_name, startcol=(i + 1), index=False)
             print(type(translation_dict), len(translation_dict), translation_dict)
             return translation_dict
     elif lang == 'ru':
