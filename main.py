@@ -8,15 +8,19 @@ import ast
 
 
 def format_string(string, p):
-    f_string = string.replace(p, '')
-    if p == 'msg:':
+    # f_string = string.replace(p, '')
+    f_string = string[len(p):]
+    if p == 'msg:' or p == 'set:':
         print(f_string)
-        f_string = f_string.replace('unit: meter', "unit - meter")
-        f_string = f_string.replace('单位:', "单位-")
-        f_string = f_string.replace('единица измерения: метр', "единица измерения - метр")
-        f_string = f_string.replace('الوحدة:', "الوحدة-")
-        f_string = f_string.replace('unité:', "unité-")
-        f_string = f_string.replace('unidad:', "unidad-")
+        del_part = r'\w+?(: )'
+        del_regex = re.compile(del_part)
+        f_string = re.sub(del_regex, r'- ', f_string)
+        # f_string = f_string.replace('unit: meter', "unit - meter")
+        # f_string = f_string.replace('单位:', "单位-")
+        # f_string = f_string.replace('единица измерения: метр', "единица измерения - метр")
+        # f_string = f_string.replace('الوحدة:', "الوحدة-")
+        # f_string = f_string.replace('unité:', "unité-")
+        # f_string = f_string.replace('unidad:', "unidad-")
         print(f_string)
     key_pattern = r'(\w+):'
     p_regex = re.compile(key_pattern)
@@ -48,7 +52,11 @@ def parse(text: str):
     patterns = {'map': ["nameCannotNull",'Please enter the complete name'],
                 'window': ["savedSuccessfully", "Saved successfully"],
                 'msg': ["ring_one", "ring one"],
-                'set': ["ssid", "matching rule"]}
+                'set': ["setWifiConfigFailed", "Failed to set Wi-Fi configuration"],
+                'record': ["startRelay", "Action Module"],
+                'playback': ["playback", "Data Playback"],
+                'analyze': ["timeSelect", "Time selection"],
+                'spectrum': ["spectrumInit", "Device initializing"]}
     i = True
     depth = 0
     for patt, value in patterns.items():
