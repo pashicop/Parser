@@ -5,6 +5,7 @@ import pandas as pd
 import openpyxl
 import re
 import ast
+import os
 
 
 def format_string(string, p):
@@ -57,14 +58,16 @@ def parse(text: str):
         if not translation_string:
             print(f'Не найдено')
         else:
-            print(f'Найдено({len(translation_string)}): {translation_string}')
+            # print(f'Найдено({len(translation_string)}): {translation_string}')
             for t_str in translation_string:
                 formatted_string = format_string(t_str, pattern)
                 translation_dict = ast.literal_eval(formatted_string)
                 if translation_dict[value[0]] == value[1]:
                     dict_en = deepcopy(translation_dict)
+                    print(f'Найден блок {pattern} - en')
                 elif has_cyrillic(translation_dict[value[0]]):
                     dict_ru = deepcopy(translation_dict)
+                    print(f'Найден блок {pattern} - ru')
             if dict_ru:
                 if dict_en:
                     dd = defaultdict(list)
@@ -78,7 +81,7 @@ def parse(text: str):
                     for key in list(dict_ru.keys()):
                         if key not in list(dd.keys()):
                             dd[key] = ['', dict_ru[key]]
-                    print(dd)
+                    # print(dd)
                 sheet_name = "Лист1"
                 if i:
                     data = pd.DataFrame.from_dict(dict(dd), orient='index', columns=['EN', 'RU'])
@@ -99,9 +102,34 @@ def read_from_file(file="data/app.fc4d0722.js"):
 
 
 def main():
-    src_text = read_from_file()
-    if src_text:
-        parse(src_text)
+    # term_size = os.get_terminal_size()
+    while True:
+        print('Что вы хотите сделать?\n1. Считать файл js и записать в Шторм.xlsx?\n'
+              '2. Записать данные из Шторм.xslx в файл js?\n'
+              '3. Выйти')
+        task = input('Введите число: ')
+        if task == '1':
+            try:
+                src_text = read_from_file()
+                if src_text:
+                    parse(src_text)
+                    print('=' * 80)
+                    print('Считано и записано в файл xlsx успешно')
+                    print('=' * 80 + '\n')
+            except Exception as e:
+                print(f'{e}')
+        elif task == '2':
+            try:
+                print('=' * 80)
+                print('Записано в файл js успешно')
+                print('=' * 80 + '\n')
+            except Exception as e:
+                print(f'{e}')
+        elif task == '3':
+            print('=' * 80)
+            print('Выход из программы')
+            print('=' * 80 + '\n')
+            break
 
 
 if __name__ == "__main__":
