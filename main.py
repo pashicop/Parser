@@ -11,35 +11,55 @@ import subprocess
 
 
 def m_window():
-    layout = [[sg.T('Выберите файл'),
-               sg.Input(disabled=True,
-                        enable_events=True,
-                        key='-IN-',
-                        disabled_readonly_background_color='gray'),
-               sg.FileBrowse('Открыть',
-                             initial_folder=os.path.join('.', 'data'),
-                             enable_events=True,),
-               ],
-              [sg.Multiline(key='-OUT-',
-                            size=(100, 20),
-                            reroute_stdout=True,)],
-              [sg.Button('Открыть файл',
-                         key='-Open-',
-                         disabled=True,
-                         enable_events=True,
-                         disabled_button_color='dark gray'),]]
+    col1 = sg.Column([[sg.Frame('Чтение файла перевода',
+                                [[sg.T('Выберите файл'),
+                       sg.Input(disabled=True,
+                                enable_events=True,
+                                key='-IN-',
+                                disabled_readonly_background_color='gray'),
+                       sg.FileBrowse('Открыть',
+                                     initial_folder=os.path.join('.', 'data'),
+                                     enable_events=True,
+                                     key='-IN-FB-',),
+                       ]],
+                                p=(5,(5,20)))],
+                      [sg.Frame('Изменение файла перевода',
+                                [[sg.Button('Открыть файл',
+                                 key='-Open-',
+                                 disabled=True,
+                                 enable_events=True,
+                                 disabled_button_color='dark gray'),]],
+                                expand_x=True,
+                                p=(5,(5,20))),],
+                      [sg.Frame('Запись файла перевода',
+                                [[sg.T('Выберите файл'),
+                       sg.Input(disabled=True,
+                                enable_events=True,
+                                key='-WR-IN-',
+                                disabled_readonly_background_color='gray'),
+                       sg.FileBrowse('Открыть',
+                                     initial_folder=os.getcwd(),
+                                     enable_events=True,
+                                     key='-WR-FB-',),
+                       ]],
+                                p=(5,(5,20)))]],
+                     vertical_alignment='top')
+    col2 = sg.Column([[sg.Multiline(key='-OUT-',
+                                    size=(100, 20),
+                                    autoscroll=True,
+                                    reroute_stdout=True, )],])
+    layout = [[col1, sg.VSep(), col2]]
     window = sg.Window('Перевод', layout)
     return window
 
 
 def format_string(string, p):
     f_string = string[len(p):]
-    if p == 'msg:' or p == 'set:':
-        # print(f_string)
-        del_part = r'\w+?(: )'
-        del_regex = re.compile(del_part)
-        f_string = re.sub(del_regex, r'- ', f_string)
-        # print(f_string)
+    # print(f_string)
+    del_part = r'\w+?(: )'
+    del_regex = re.compile(del_part)
+    f_string = re.sub(del_regex, r'- ', f_string)
+    # print(f_string)
     key_pattern = r'(\w+):'
     p_regex = re.compile(key_pattern)
     keys = re.findall(p_regex, f_string)
@@ -109,12 +129,17 @@ def parse(text: str):
                 sheet_name = "Лист1"
                 if i:
                     data = pd.DataFrame.from_dict(dict(dd), orient='index', columns=['EN', 'RU'])
+                    data.to_excel(os.path.join('original', "Шторм_original.xlsx"), sheet_name=sheet_name)
                     data.to_excel("Шторм.xlsx", sheet_name=sheet_name)
                     i = False
                 else:
                     data = pd.DataFrame.from_dict(dict(dd), orient='index', columns=['', ''])
+                    with pd.ExcelWriter(os.path.join('original', "Шторм_original.xlsx"),
+                                        mode='a',
+                                        if_sheet_exists='overlay') as writer:
+                        data.to_excel(writer, sheet_name=sheet_name, startrow=depth)
                     with pd.ExcelWriter('Шторм.xlsx', mode='a', if_sheet_exists='overlay') as writer:
-                        data.to_excel(writer, sheet_name=sheet_name, startrow=(depth))
+                        data.to_excel(writer, sheet_name=sheet_name, startrow=depth)
                 depth += len(dd) + 2
             # print(type(translation_dict), len(translation_dict), translation_dict)
 
@@ -148,6 +173,10 @@ def main():
             command = 'open'
             path =  os.path.join(os.getcwd(), 'Шторм.xlsx')
             subprocess.Popen([command, path])
+        elif event == '-WR-IN-':
+            print('=' * 80)
+            print('Записано в файл js успешно')
+            print('=' * 80 + '\n')
         else:
             print(event, values)
     while True:
