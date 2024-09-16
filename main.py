@@ -95,8 +95,8 @@ def parse(text: str):
             # print(type(translation_dict), len(translation_dict), translation_dict)
 
 
-def read_from_file(file="data/app.fc4d0722.js"):
-    with open(file) as f:
+def read_from_file(file=os.path.join('data', 'app.fc4d0722.js')):
+    with open(file, encoding='utf-8') as f:
         # print(f.read())
         return f.read()
 
