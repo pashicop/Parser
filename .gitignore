@@ -3,3 +3,5 @@
 /build/
 /dist/
 /dist64/
+/.venv12/
+/.venv12_64/
