@@ -6,6 +6,30 @@ import openpyxl
 import re
 import ast
 import os
+import PySimpleGUI as sg
+import subprocess
+
+
+def m_window():
+    layout = [[sg.T('Выберите файл'),
+               sg.Input(disabled=True,
+                        enable_events=True,
+                        key='-IN-',
+                        disabled_readonly_background_color='gray'),
+               sg.FileBrowse('Открыть',
+                             initial_folder=os.path.join('.', 'data'),
+                             enable_events=True,),
+               ],
+              [sg.Multiline(key='-OUT-',
+                            size=(100, 20),
+                            reroute_stdout=True,)],
+              [sg.Button('Открыть файл',
+                         key='-Open-',
+                         disabled=True,
+                         enable_events=True,
+                         disabled_button_color='dark gray'),]]
+    window = sg.Window('Перевод', layout)
+    return window
 
 
 def format_string(string, p):
@@ -103,6 +127,29 @@ def read_from_file(file=os.path.join('data', 'app.fc4d0722.js')):
 
 def main():
     # term_size = os.get_terminal_size()
+    main_window = m_window()
+    while True:
+        event, values = main_window.Read()
+        if event in (None, 'Exit'):
+            break
+        elif event == '-IN-':
+            try:
+                main_window['-Open-'].Update(disabled=False)
+                src_text = read_from_file(values['-IN-'])
+                if src_text:
+                    parse(src_text)
+                    print('=' * 80)
+                    print('Считано и записано в файл xlsx успешно')
+                    print('=' * 80 + '\n')
+            except Exception as e:
+                print(f'{e}')
+        elif event == '-Open-':
+            # os.open(os.path.join(os.getcwd(), 'Шторм.xlsx'), os.O_RDWR)
+            command = 'open'
+            path =  os.path.join(os.getcwd(), 'Шторм.xlsx')
+            subprocess.Popen([command, path])
+        else:
+            print(event, values)
     while True:
         print('Что вы хотите сделать?\n1. Считать файл js и записать в Шторм.xlsx?\n'
               '2. Записать данные из Шторм.xslx в файл js?\n'
