@@ -213,10 +213,16 @@ def main():
             except Exception as e:
                 print(f'{e}')
         elif event == '-Open-':
-            # os.open(os.path.join(os.getcwd(), 'Шторм.xlsx'), os.O_RDWR)
-            command = 'open'
-            path =  os.path.join(os.getcwd(), 'Шторм.xlsx')
-            subprocess.Popen([command, path])
+            # print(os.name)
+            path = os.path.join(os.getcwd(), 'Шторм.xlsx')
+            if os.name == 'nt':
+                command = 'start'
+                # path = "C:\\Users\\shitikov\\PycharmProjects\\Parser\\requirements.txt"
+                subprocess.Popen([command, path], shell=True)
+            else:
+                command = 'open'
+                # path = os.path.join(os.getcwd(), 'Шторм.xlsx')
+                subprocess.Popen([command, path])
         elif event == '-WR-IN-':
             try:
                 write_js(values['-WR-IN-'])
