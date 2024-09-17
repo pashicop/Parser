@@ -10,46 +10,53 @@ import PySimpleGUI as sg
 import subprocess
 
 
+VERSION = 0.99
+
+
 def m_window():
     col1 = sg.Column([[sg.Frame('Чтение файла перевода',
-                                [[sg.T('Выберите файл'),
-                       sg.Input(disabled=True,
-                                enable_events=True,
-                                key='-IN-',
-                                disabled_readonly_background_color='gray'),
-                       sg.FileBrowse('Открыть',
-                                     initial_folder=os.path.join('.', 'data'),
-                                     enable_events=True,
-                                     key='-IN-FB-',),
-                       ]],
-                                p=(5,(5,20)))],
+                                [[sg.T('* По умолчанию поиск идёт в папке data')],
+                                 [sg.T('Выберите файл'),
+                                  sg.Input(disabled=True,
+                                           enable_events=True,
+                                           key='-IN-',
+                                           disabled_readonly_background_color='gray'),
+                                  sg.FileBrowse('Открыть',
+                                                initial_folder=os.path.join('.', 'data'),
+                                                enable_events=True,
+                                                file_types=(('Файл перевода Шторм', '.js'),),
+                                                key='-IN-FB-', ),
+                                  ]],
+                                p=(5, (5, 20)))],
                       [sg.Frame('Изменение файла перевода',
-                                [[sg.Button('Открыть файл',
-                                 key='-Open-',
-                                 disabled=True,
-                                 enable_events=True,
-                                 disabled_button_color='dark gray'),]],
+                                [[sg.T('* Открывает сгенерированный файл Шторм.xslx в стандартном редакторе')],
+                                 [sg.Button('Открыть файл',
+                                            key='-Open-',
+                                            disabled=True,
+                                            enable_events=True,
+                                            disabled_button_color='dark gray'), ]],
                                 expand_x=True,
-                                p=(5,(5,20))),],
+                                p=(5, (5, 20))), ],
                       [sg.Frame('Запись файла перевода',
                                 [[sg.T('Выберите файл'),
-                       sg.Input(disabled=True,
-                                enable_events=True,
-                                key='-WR-IN-',
-                                disabled_readonly_background_color='gray'),
-                       sg.FileBrowse('Открыть',
-                                     initial_folder=os.getcwd(),
-                                     enable_events=True,
-                                     key='-WR-FB-',),
-                       ]],
-                                p=(5,(5,20)))]],
+                                  sg.Input(disabled=True,
+                                           enable_events=True,
+                                           key='-WR-IN-',
+                                           disabled_readonly_background_color='gray'),
+                                  sg.FileBrowse('Открыть',
+                                                initial_folder=os.getcwd(),
+                                                enable_events=True,
+                                                key='-WR-FB-', ),
+                                  ]],
+                                p=(5, (5, 20)))]],
                      vertical_alignment='top')
     col2 = sg.Column([[sg.Multiline(key='-OUT-',
-                                    size=(100, 20),
+                                    size=(81, 20),
                                     autoscroll=True,
+                                    disabled=True,
                                     reroute_stdout=True, )],])
     layout = [[col1, sg.VSep(), col2]]
-    window = sg.Window('Перевод', layout)
+    window = sg.Window('Перевод Шторм вер.' + str(VERSION), layout)
     return window
 
 
@@ -94,6 +101,8 @@ def parse(text: str):
                 'spectrum': ["spectrumInit", "Device initializing"]}
     i = True
     depth = 0
+    found_blocks_en = []
+    found_blocks_ru = []
     for patt, value in patterns.items():
         pattern = patt + ':'
         reg_exp = re.escape(pattern) + r'{.*?}'
@@ -103,19 +112,22 @@ def parse(text: str):
             print(f'Не найдено')
         else:
             # print(f'Найдено({len(translation_string)}): {translation_string}')
+            dict_en, dict_ru = dict(), dict()
             for t_str in translation_string:
                 formatted_string = format_string(t_str, pattern)
                 translation_dict = ast.literal_eval(formatted_string)
                 if translation_dict[value[0]] == value[1]:
                     dict_en = deepcopy(translation_dict)
                     print(f'Найден блок {pattern} - en')
+                    found_blocks_en.append(pattern)
                 elif has_cyrillic(translation_dict[value[0]]):
                     dict_ru = deepcopy(translation_dict)
                     print(f'Найден блок {pattern} - ru')
+                    found_blocks_ru.append(pattern)
             if dict_ru:
                 if dict_en:
                     dd = defaultdict(list)
-                    dd[pattern] = ['', '']
+                    dd[pattern] = ['', '', '']
                     # list_dict_en_keys = list(dict_en.keys())
                     list_dict_ru_keys = list(dict_ru.keys())
                     for key in list(dict_en.keys()):
@@ -128,12 +140,12 @@ def parse(text: str):
                     # print(dd)
                 sheet_name = "Лист1"
                 if i:
-                    data = pd.DataFrame.from_dict(dict(dd), orient='index', columns=['EN', 'RU'])
+                    data = pd.DataFrame.from_dict(dict(dd), orient='index', columns=['EN', 'RU', 'Исправленный перевод писать в этом столбце'])
                     data.to_excel(os.path.join('original', "Шторм_original.xlsx"), sheet_name=sheet_name)
                     data.to_excel("Шторм.xlsx", sheet_name=sheet_name)
                     i = False
                 else:
-                    data = pd.DataFrame.from_dict(dict(dd), orient='index', columns=['', ''])
+                    data = pd.DataFrame.from_dict(dict(dd), orient='index', columns=['', '', ''])
                     with pd.ExcelWriter(os.path.join('original', "Шторм_original.xlsx"),
                                         mode='a',
                                         if_sheet_exists='overlay') as writer:
@@ -141,13 +153,24 @@ def parse(text: str):
                     with pd.ExcelWriter('Шторм.xlsx', mode='a', if_sheet_exists='overlay') as writer:
                         data.to_excel(writer, sheet_name=sheet_name, startrow=depth)
                 depth += len(dd) + 2
-            # print(type(translation_dict), len(translation_dict), translation_dict)
+    return found_blocks_en, found_blocks_ru
 
 
 def read_from_file(file=os.path.join('data', 'app.fc4d0722.js')):
     with open(file, encoding='utf-8') as f:
         # print(f.read())
         return f.read()
+
+
+def write_js(file=os.path.join('Шторм.xlsx')):
+    df = pd.read_excel(file)
+    # print(df)
+    df = df.replace({float('nan'): None})
+    data = df.to_dict('records')
+    for record in data:
+        if record['Исправленный перевод писать в этом столбце']:
+            print(record)
+    # print(data)
 
 
 def main():
@@ -162,9 +185,11 @@ def main():
                 main_window['-Open-'].Update(disabled=False)
                 src_text = read_from_file(values['-IN-'])
                 if src_text:
-                    parse(src_text)
+                    en_blocks, ru_blocks = parse(src_text)
                     print('=' * 80)
-                    print('Считано и записано в файл xlsx успешно')
+                    print(f'Найдено {len(en_blocks)} модулей -', *en_blocks, f' на англ. языке', sep=' '  )
+                    print(f'Найдено {len(ru_blocks)} модулей -', *ru_blocks, f' на русском языке', sep=' '  )
+                    print('Записано в файл Шторм.xlsx успешно')
                     print('=' * 80 + '\n')
             except Exception as e:
                 print(f'{e}')
@@ -174,38 +199,42 @@ def main():
             path =  os.path.join(os.getcwd(), 'Шторм.xlsx')
             subprocess.Popen([command, path])
         elif event == '-WR-IN-':
-            print('=' * 80)
-            print('Записано в файл js успешно')
-            print('=' * 80 + '\n')
-        else:
-            print(event, values)
-    while True:
-        print('Что вы хотите сделать?\n1. Считать файл js и записать в Шторм.xlsx?\n'
-              '2. Записать данные из Шторм.xslx в файл js?\n'
-              '3. Выйти')
-        task = input('Введите число: ')
-        if task == '1':
             try:
-                src_text = read_from_file()
-                if src_text:
-                    parse(src_text)
-                    print('=' * 80)
-                    print('Считано и записано в файл xlsx успешно')
-                    print('=' * 80 + '\n')
-            except Exception as e:
-                print(f'{e}')
-        elif task == '2':
-            try:
+                write_js(values['-WR-IN-'])
                 print('=' * 80)
                 print('Записано в файл js успешно')
                 print('=' * 80 + '\n')
             except Exception as e:
                 print(f'{e}')
-        elif task == '3':
-            print('=' * 80)
-            print('Выход из программы')
-            print('=' * 80 + '\n')
-            break
+        else:
+            print(event, values)
+    # while True:
+    #     print('Что вы хотите сделать?\n1. Считать файл js и записать в Шторм.xlsx?\n'
+    #           '2. Записать данные из Шторм.xslx в файл js?\n'
+    #           '3. Выйти')
+    #     task = input('Введите число: ')
+    #     if task == '1':
+    #         try:
+    #             src_text = read_from_file()
+    #             if src_text:
+    #                 parse(src_text)
+    #                 print('=' * 80)
+    #                 print('Считано и записано в файл xlsx успешно')
+    #                 print('=' * 80 + '\n')
+    #         except Exception as e:
+    #             print(f'{e}')
+    #     elif task == '2':
+    #         try:
+    #             print('=' * 80)
+    #             print('Записано в файл js успешно')
+    #             print('=' * 80 + '\n')
+    #         except Exception as e:
+    #             print(f'{e}')
+    #     elif task == '3':
+    #         print('=' * 80)
+    #         print('Выход из программы')
+    #         print('=' * 80 + '\n')
+    #         break
 
 
 if __name__ == "__main__":
