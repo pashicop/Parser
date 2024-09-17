@@ -1,3 +1,4 @@
+import shutil
 from copy import deepcopy
 from pprint import pprint
 from collections import defaultdict
@@ -10,7 +11,7 @@ import PySimpleGUI as sg
 import subprocess
 
 
-VERSION = 0.99
+VERSION = 1.0
 
 
 def m_window():
@@ -159,17 +160,33 @@ def parse(text: str):
 def read_from_file(file=os.path.join('data', 'app.fc4d0722.js')):
     with open(file, encoding='utf-8') as f:
         # print(f.read())
+        shutil.copy(file, os.path.join('out', 'app.fc4d0722.js'))
         return f.read()
 
 
-def write_js(file=os.path.join('Шторм.xlsx')):
-    df = pd.read_excel(file)
+def write_js(f_read=os.path.join('Шторм.xlsx'), f_write=os.path.join('out', 'app.fc4d0722.js')):
+    df = pd.read_excel(f_read)
     # print(df)
     df = df.replace({float('nan'): None})
     data = df.to_dict('records')
-    for record in data:
-        if record['Исправленный перевод писать в этом столбце']:
-            print(record)
+    with open(f_write, mode='r', encoding='utf-8') as f:
+        file_js = f.read()
+        is_changed = False
+        for record in data:
+            if record['Исправленный перевод писать в этом столбце']:
+                is_changed = True
+                file_js = file_js.replace(record['RU'], record['Исправленный перевод писать в этом столбце'])
+                print(f"Изменена переменная '{record['Unnamed: 0']}' с '{record['RU']}' на '{record['Исправленный перевод писать в этом столбце']}'")
+    with open(f_write, mode='w', encoding='utf-8') as f:
+        print('=' * 80)
+        if is_changed:
+            f.write(file_js)
+            print('Записано в файл js успешно')
+        else:
+            print('Не найдено изменений!')
+        print('=' * 80 + '\n')
+
+
     # print(data)
 
 
@@ -201,9 +218,6 @@ def main():
         elif event == '-WR-IN-':
             try:
                 write_js(values['-WR-IN-'])
-                print('=' * 80)
-                print('Записано в файл js успешно')
-                print('=' * 80 + '\n')
             except Exception as e:
                 print(f'{e}')
         else:
