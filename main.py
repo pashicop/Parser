@@ -175,7 +175,9 @@ def write_js(f_read=os.path.join('Шторм.xlsx'), f_write=os.path.join('out',
         for record in data:
             if record['Исправленный перевод писать в этом столбце']:
                 is_changed = True
-                file_js = file_js.replace(record['RU'], record['Исправленный перевод писать в этом столбце'])
+                substr = record['Unnamed: 0'] + ':"' + record['RU']
+                replace_substr = record['Unnamed: 0'] + ':"' + record['Исправленный перевод писать в этом столбце']
+                file_js = file_js.replace(substr, replace_substr)
                 print(f"Изменена переменная '{record['Unnamed: 0']}' с '{record['RU']}' на '{record['Исправленный перевод писать в этом столбце']}'")
     with open(f_write, mode='w', encoding='utf-8') as f:
         print('=' * 80)
