@@ -74,9 +74,9 @@ def m_window():
 def format_string(string, p):
     f_string = string[len(p):]
     # print(f_string)
-    del_part = r'\w+?(: )'
+    del_part = r'(\w+?): '
     del_regex = re.compile(del_part)
-    f_string = re.sub(del_regex, r'- ', f_string)
+    f_string = re.sub(del_regex, r'\1 – ', f_string)
     # print(f_string)
     key_pattern = r'(\w+):'
     p_regex = re.compile(key_pattern)
@@ -89,10 +89,10 @@ def format_string(string, p):
 
 def format_string_for_writing(string, p):
     f_string = string[len(p):]
-    del_part = r'\w+?(: )'
+    del_part = r'(\w+?): '
     del_regex = re.compile(del_part)
     all_sustrings = del_regex.findall(f_string)
-    f_string = re.sub(del_regex, r'- ', f_string)
+    f_string = re.sub(del_regex, r'\1 - ', f_string)
     return f_string
 
 
@@ -172,12 +172,12 @@ def parse(text: str):
                     # list_dict_en_keys = list(dict_en.keys())
                     list_dict_ru_keys = list(dict_ru.keys())
                     for key in list(dict_en.keys()):
-                        dd[key].append(dict_en[key])
+                        dd[key].append(str(dict_en[key]).replace(' – ', ': '))
                         if key in list_dict_ru_keys:
-                            dd[key].append(dict_ru[key])
+                            dd[key].append(str(dict_ru[key]).replace(' – ', ': '))
                     for key in list(dict_ru.keys()):
                         if key not in list(dd.keys()):
-                            dd[key] = ['', dict_ru[key]]
+                            dd[key] = ['', str(dict_ru[key]).replace(' – ', ': ')]
                     # print(dd)
                 sheet_name = "Лист1"
                 if i:
@@ -224,10 +224,6 @@ def write_js(f_read=os.path.join('Шторм.xlsx'), f_write=os.path.join('out',
                     continue
                 if record['Исправленный перевод писать в этом столбце']:
                     is_changed = True
-                    # print(module)
-                    # substr = record['Unnamed: 0'] + ':"' + record['RU'] + '"'
-                    # replace_substr = record['Unnamed: 0'] + ':"' + record['Исправленный перевод писать в этом столбце'] + '"'
-                    # file_js = file_js.replace(substr, replace_substr)
                     module_js = parse_by_pattern(module, file_js)
                     print(f"Найдена строка для замены в {record['Unnamed: 0']}: {record['RU']} -> {record[
                         'Исправленный перевод писать в этом столбце']}")
@@ -240,13 +236,12 @@ def write_js(f_read=os.path.join('Шторм.xlsx'), f_write=os.path.join('out',
                     # with open('new_module', mode='w', encoding='utf-8') as f:
                     #     f.write(new_module_js)
                     # print(file_js)
+                    # with open('old_js', mode='w', encoding='utf-8') as f:
+                    #     f.write(file_js)
                     file_js = file_js.replace(module_js, new_module_js)
                     # print(file_js)
-                    # try to replace via re
-                    # pattern = re.escape(substr)
-                    # reg_exp = re.compile('name')
-                    # found_parts = reg_exp.findall(file_js)
-                    # file_js = re.sub(reg_exp, replace_substr, file_js)
+                    # with open('new_js', mode='w', encoding='utf-8') as f:
+                    #     f.write(file_js)
                     print(f"Изменена переменная '{record['Unnamed: 0']}' с '{record['RU']}' "
                           f"на '{record['Исправленный перевод писать в этом столбце']}' "
                           f"в блоке {module}")
