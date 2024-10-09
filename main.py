@@ -9,6 +9,7 @@ import ast
 import os
 import PySimpleGUI as sg
 import subprocess
+import gzip
 
 
 VERSION = 1.01
@@ -48,13 +49,15 @@ def m_window():
                                 expand_x=True,
                                 p=(5, (5, 20))), ],
                       [sg.Frame('Запись файла перевода',
-                                [[sg.T('Выберите файл'),
+                                [[sg.T('* Генерирует файл js и js.gz')],
+                                 [sg.T('Выберите файл'),
                                   sg.Input(disabled=True,
                                            enable_events=True,
                                            key='-WR-IN-',
                                            disabled_readonly_background_color='gray'),
                                   sg.FileBrowse('Открыть',
                                                 initial_folder=os.getcwd(),
+                                                disabled=True,
                                                 enable_events=True,
                                                 key='-WR-FB-', ),
                                   ]],
@@ -200,7 +203,8 @@ def parse(text: str):
 def read_from_file(file=os.path.join('data', 'app.fc4d0722.js')):
     with open(file, encoding='utf-8') as f:
         # print(f.read())
-        shutil.copy(file, os.path.join('out', 'app.fc4d0722.js'))
+        shutil.copy(file, os.path.join('original', os.path.basename(file)))
+        shutil.copy(file, os.path.join('out', os.path.basename(file)))
         return f.read()
 
 
@@ -231,34 +235,30 @@ def write_js(f_read=os.path.join('Шторм.xlsx'), f_write=os.path.join('out',
                     replace_substr = record['Unnamed: 0'] + ':"' + record[
                         'Исправленный перевод писать в этом столбце'] + '"'
                     new_module_js = module_js.replace(substr, replace_substr)
-                    # with open('module', mode='w', encoding='utf-8') as f:
-                    #     f.write(module_js)
-                    # with open('new_module', mode='w', encoding='utf-8') as f:
-                    #     f.write(new_module_js)
-                    # print(file_js)
-                    # with open('old_js', mode='w', encoding='utf-8') as f:
-                    #     f.write(file_js)
                     file_js = file_js.replace(module_js, new_module_js)
-                    # print(file_js)
-                    # with open('new_js', mode='w', encoding='utf-8') as f:
-                    #     f.write(file_js)
                     print(f"Изменена переменная '{record['Unnamed: 0']}' с '{record['RU']}' "
                           f"на '{record['Исправленный перевод писать в этом столбце']}' "
                           f"в блоке {module}")
             except Exception as e:
                 print(e)
-    with open(f_write, mode='w', encoding='utf-8') as f:
-        print('\n' + '=' * 80)
-        if is_changed:
+
+    print('\n' + '=' * 80)
+    if is_changed:
+        with open(f_write, mode='w', encoding='utf-8') as f:
             f.write(file_js)
             print('Записано в файл js успешно')
-        else:
-            print('Не найдено изменений!')
-        print('=' * 80 + '\n')
+        with open(f_write, mode='rb') as f_in:
+            with gzip.open((f_write + '.gz'), mode='wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+                print('Сгенерирован файл js.gz успешно')
+    else:
+        print('Не найдено изменений!')
+    print('=' * 80 + '\n')
 
 
 def main():
     # term_size = os.get_terminal_size()
+    FILENAME = 'app.fc4d0722.js'
     main_window = m_window()
     while True:
         event, values = main_window.Read()
@@ -267,8 +267,10 @@ def main():
         elif event == '-IN-':
             try:
                 main_window['-Open-'].Update(disabled=False)
+                main_window['-WR-FB-'].Update(disabled=False)
                 src_text = read_from_file(values['-IN-'])
                 if src_text:
+                    FILENAME = os.path.basename(values['-IN-'])
                     en_blocks, ru_blocks = parse(src_text)
                     print('=' * 80)
                     print(f'Найдено {len(en_blocks)} модулей -', *en_blocks, f' на англ. языке', sep=' '  )
@@ -290,7 +292,7 @@ def main():
                 subprocess.Popen([command, path])
         elif event == '-WR-IN-':
             try:
-                write_js(values['-WR-IN-'])
+                write_js(values['-WR-IN-'], os.path.join('out', FILENAME))
             except Exception as e:
                 print(f'{e}')
         else:
