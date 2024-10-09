@@ -61,7 +61,17 @@ def m_window():
                                                 enable_events=True,
                                                 key='-WR-FB-', ),
                                   ]],
-                                p=(5, (5, 20)))]],
+                                p=(5, (5, 20)))],
+                      [sg.Frame('Посмотреть результат',
+                                [[sg.Button('Открыть проводник',
+                                            key='-Open-Explorer-',
+                                            disabled=True,
+                                            enable_events=True,
+                                            p=(5, (10, 20)),
+                                            disabled_button_color='dark gray'), ]],
+                                expand_x=True,
+                                p=(5, (5, 20)))]
+                      ],
                      vertical_alignment='top')
     col2 = sg.Column([[sg.Multiline(key='-OUT-',
                                     size=(81, 20),
@@ -293,8 +303,17 @@ def main():
         elif event == '-WR-IN-':
             try:
                 write_js(values['-WR-IN-'], os.path.join('out', FILENAME))
+                main_window['-Open-Explorer-'].Update(disabled=False)
             except Exception as e:
                 print(f'{e}')
+        elif event == '-Open-Explorer-':
+            path = os.path.join(os.getcwd(), 'out')
+            if os.name == 'nt':
+                command = 'start'
+                subprocess.Popen([command, path], shell=True)
+            else:
+                command = 'open'
+                subprocess.Popen([command, path])
         else:
             print(event, values)
 
